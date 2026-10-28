@@ -13,6 +13,38 @@ live with their module.
 | `install-vllm.sh` | Bare-metal vLLM 0.31.0 install into the repository's Python 3.12 `.venv`. Uses uv's `cu130` PyTorch backend, installs the same extras and NCCL pin, then applies the same source patches as Docker. |
 | `compile.sh`      | Build ASTRA-Sim's analytical backend and install the Chakra trace converter. Rerun it after any change under `astra-sim/`, including `llm_converter.py`, which is installed into site-packages rather than imported from the tree. |
 | `monitor_run.py` | Run one command with process-tree RSS, host-memory, swap-growth and timeout guards; write CSV telemetry and a JSON completion summary. Optional GPU telemetry targets one explicit physical UUID. |
+| `apptainer-sim.def` | Build a CPU-only SIF environment with Python simulator dependencies, C++ build tools and the checked-out Chakra LLM converter. |
+
+## Apptainer simulator environment
+
+Run these commands from the repository root. The SIF contains the environment
+and the Chakra LLM converter snapshot; source, profile tables, the compiled
+ASTRA-Sim backend and results stay in the bound repository. Rebuild the SIF
+after changing the Chakra converter. This deliberately omits HTA, Torch and
+other Chakra tools because serving imports only the protobuf-based converter.
+
+```bash
+git submodule update --init --recursive
+mkdir -p outputs
+apptainer build --fakeroot outputs/llmservingsim-sim.sif scripts/apptainer-sim.def
+apptainer exec --cleanenv --bind "$PWD:/workspace" --pwd /workspace \
+    outputs/llmservingsim-sim.sif \
+    bash astra-sim/build/astra_analytical/build.sh -t congestion_unaware
+apptainer run --cleanenv --bind "$PWD:/workspace" \
+    outputs/llmservingsim-sim.sif \
+    --cluster-config configs/cluster/single_node_single_instance.json \
+    --dataset workloads/example_trace.jsonl --num-reqs 10 \
+    --output outputs/apptainer-single.csv
+apptainer exec --cleanenv --bind "$PWD:/workspace" --pwd /workspace \
+    outputs/llmservingsim-sim.sif \
+    bash serving/validate.sh single multi tp_pp moe
+```
+
+The backend build skips `scripts/compile.sh`'s pip installation because the
+converter is already included in the SIF. No GPU or `--nv` is required.
+Image creation needs registry/package-network access and working Apptainer
+fakeroot support. Set `APPTAINER_CACHEDIR` and `APPTAINER_TMPDIR` to writable
+locations with sufficient space when the host defaults are unsuitable.
 
 ## Typical first-time setup
 

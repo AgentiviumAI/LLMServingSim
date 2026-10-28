@@ -8,6 +8,13 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) co
 
 ## [Unreleased]
 
+### Added
+
+- Add a CPU-only Apptainer SIF recipe with simulator dependencies, build tools
+  and the checked-out Chakra LLM converter. Bind the repository for backend
+  compilation and simulation; rebuild the image after converter changes. See
+  [simulator setup](https://llmservingsim.ai/docs/getting-started/installation/simulator#apptainer-alternative).
+
 ### Fixed
 
 - Delete each batch's ASTRA-Sim workload folder during the run, once

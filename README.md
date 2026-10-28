@@ -40,6 +40,9 @@ cd LLMServingSim
 ./serving/run.sh                  # run the example simulations
 ```
 
+For Apptainer hosts, build and run the CPU-only SIF environment using the
+[Apptainer instructions](scripts/README.md#apptainer-simulator-environment).
+
 For installation, configuration, and examples, see the
 [documentation](https://llmservingsim.ai/docs/getting-started/overview).
 Existing users should follow the

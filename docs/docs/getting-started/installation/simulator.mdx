@@ -13,7 +13,8 @@ step 3 below is required, not optional. It also ships none of the
 Python packages the simulator imports; `docker-sim.sh` pip-installs
 those at launch.
 
-This is the install path **everyone needs**. If you also want to
+Docker is the default path; an [Apptainer alternative](#apptainer-alternative)
+is available below. If you also want to
 profile new hardware or record new end-to-end vLLM benchmarks, follow
 **[vLLM setup](./vllm)** afterwards. Comparing existing benchmark recordings
 with `bench validate` works in this simulator environment without a GPU.
@@ -129,6 +130,39 @@ at `outputs/example_single_run.csv`. If you instead get
 [Troubleshooting → Missing profile data](../troubleshooting#missing-profile-data).
 
 
+
+## Apptainer alternative
+
+On hosts with Apptainer, run the following from the initialized repository
+root instead of the Docker steps above:
+
+```bash
+mkdir -p outputs
+apptainer build --fakeroot outputs/llmservingsim-sim.sif scripts/apptainer-sim.def
+apptainer exec --cleanenv --bind "$PWD:/workspace" --pwd /workspace \
+  outputs/llmservingsim-sim.sif \
+  bash astra-sim/build/astra_analytical/build.sh -t congestion_unaware
+apptainer run --cleanenv --bind "$PWD:/workspace" \
+  outputs/llmservingsim-sim.sif \
+  --cluster-config configs/cluster/single_node_single_instance.json \
+  --dataset workloads/example_trace.jsonl --num-reqs 10 \
+  --output outputs/apptainer-single.csv
+apptainer exec --cleanenv --bind "$PWD:/workspace" --pwd /workspace \
+  outputs/llmservingsim-sim.sif \
+  bash serving/validate.sh single multi tp_pp moe
+```
+
+The Ubuntu 22.04 SIF contains Python simulator dependencies, C++ build tools
+and a snapshot of the checked-out Chakra LLM converter. Source, profile tables,
+the compiled backend and outputs remain in the bound repository. Rebuild the
+image after changing the converter; the backend build above does not reinstall
+Chakra. The image supplies only the protobuf-based LLM converter, excluding
+other Chakra tools and their HTA/Torch dependencies. It does not include vLLM.
+
+No GPU or `--nv` is needed. Image creation requires package-network access
+and working fakeroot support. Set `APPTAINER_CACHEDIR` and `APPTAINER_TMPDIR`
+to writable locations with enough space if necessary. Keep generated SIFs
+and scratch results under `outputs/`, outside version control.
 
 ## You're done
 

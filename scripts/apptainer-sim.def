@@ -1,0 +1,44 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%files
+    astra-sim/extern/graph_frontend/chakra /opt/chakra-source
+
+%post
+    set -eu
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        build-essential cmake protobuf-compiler libprotobuf-dev \
+        python3 python3-pip python3-dev ca-certificates git
+    python3 -m pip install --no-cache-dir \
+        pyyaml pyinstrument rich pandas==1.5.3 numpy==1.23.5 \
+        scipy==1.10.1 matplotlib==3.5.3 protobuf==3.20.3
+    # Serving imports only the LLM converter, which needs protobuf, not HTA/Torch.
+    # Keep the checked-out converter source; generate bindings with this image's protoc.
+    mkdir -p /opt/sim-python/chakra/schema
+    cp -r /opt/chakra-source/src /opt/sim-python/chakra/src
+    cp -r /opt/chakra-source/schema/protobuf /opt/sim-python/chakra/schema/protobuf
+    protoc --proto_path=/opt/sim-python/chakra/schema/protobuf \
+        --python_out=/opt/sim-python/chakra/schema/protobuf \
+        /opt/sim-python/chakra/schema/protobuf/et_def.proto
+    rm -rf /opt/chakra-source /var/lib/apt/lists/*
+
+%environment
+    export PYTHONPATH=/opt/sim-python${PYTHONPATH:+:$PYTHONPATH}
+    export MPLCONFIGDIR=/tmp/llmservingsim-matplotlib
+    export PYTHONUNBUFFERED=1
+
+%runscript
+    cd /workspace
+    exec python3 -m serving "$@"
+
+%test
+    PYTHONPATH=/opt/sim-python python3 -c 'import pandas, numpy, scipy, yaml, rich, pyinstrument; from chakra.src.converter.llm_converter import LLMConverter'
+    cmake --version
+    protoc --version
+
+%help
+    CPU-only LLMServingSim environment with the repository's Chakra LLM converter.
+    Bind the repository to /workspace and compile ASTRA-Sim there before running.
+    This image does not include vLLM, GPU profiling, or other Chakra tools.

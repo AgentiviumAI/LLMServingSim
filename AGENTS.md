@@ -2734,6 +2734,13 @@ These must match the C++ enum in `astra-sim/astra-sim/system/AstraMemoryAPI.hh`.
 
 ### Docker environments
 
+The CPU simulator also supports `scripts/apptainer-sim.def`. Build the SIF
+from the repository root after initializing submodules, bind the repository
+at `/workspace`, and compile the analytical backend inside that environment.
+The image snapshots only Chakra's protobuf-based LLM converter; rebuild it
+after converter changes. It does not provide the full Chakra toolchain or vLLM.
+See `scripts/README.md` for the build, run and validation commands.
+
 For long runs, `scripts/monitor_run.py` provides process-tree RSS, host available
 memory, optional swap-growth and timeout guards. Choose explicit limits for the
 host and a fresh log path; summed RSS can double-count shared pages. It stops

@@ -2,6 +2,9 @@
 
 Public documentation website built with [Docusaurus](https://docusaurus.io/).
 
+The simulator installation guide covers Docker and the CPU-only Apptainer SIF
+environment, including backend compilation and the bound-repository workflow.
+
 ## Layout
 
 Selected source directories and build entry points:
